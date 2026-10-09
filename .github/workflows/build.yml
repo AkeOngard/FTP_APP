@@ -81,7 +81,7 @@ jobs:
       # upload-artifact drops file permissions, so Linux and macOS are packed first
       - name: Pack (Linux)
         if: runner.os == 'Linux'
-        run: tar -C build/bin -czf FTP_App-${{ matrix.name }}.tar.gz FTP_App
+        run: tar -C build/bin -czf FileTrans-${{ matrix.name }}.tar.gz FileTrans
 
       - name: Pack (macOS)
         if: runner.os == 'macOS'
@@ -93,17 +93,17 @@ jobs:
             exit 1
           fi
           echo "packing $app"
-          ditto -c -k --keepParent "$app" FTP_App-${{ matrix.name }}.zip
+          ditto -c -k --keepParent "$app" FileTrans-${{ matrix.name }}.zip
 
       - name: Pack (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path build/bin/FTP_App.exe -DestinationPath FTP_App-${{ matrix.name }}.zip
+        run: Compress-Archive -Path build/bin/FileTrans.exe -DestinationPath FileTrans-${{ matrix.name }}.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: FTP_App-${{ matrix.name }}
-          path: FTP_App-${{ matrix.name }}.*
+          name: FileTrans-${{ matrix.name }}
+          path: FileTrans-${{ matrix.name }}.*
           if-no-files-found: error
 
   release:

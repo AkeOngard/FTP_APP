@@ -37,7 +37,7 @@ func dialFTP(ctx context.Context, p ConnectParams) (RemoteClient, error) {
 	}
 	user, pass := p.User, p.Password
 	if user == "" {
-		user, pass = "anonymous", "ftpapp@localhost"
+		user, pass = "anonymous", "filetrans@localhost"
 	}
 	if err := c.Login(user, pass); err != nil {
 		c.Quit()

@@ -33,7 +33,7 @@ func main() {
 	app := NewApp(mgr)
 
 	err = wails.Run(&options.App{
-		Title:     "FTP App",
+		Title:     "File Trans",
 		Width:     1120,
 		Height:    740,
 		MinWidth:  940,
@@ -46,8 +46,8 @@ func main() {
 		OnShutdown:       app.shutdown,
 		DragAndDrop:      &options.DragAndDrop{EnableFileDrop: true},
 		// The UI is plain text and boxes, so GPU compositing buys nothing; without it WebView2 needs
-		// about 45 MB less. Set FTPAPP_GPU=1 to switch hardware acceleration back on.
-		Windows: &windows.Options{Theme: windows.SystemDefault, WebviewGpuIsDisabled: os.Getenv("FTPAPP_GPU") != "1"},
+		// about 45 MB less. Set FILETRANS_GPU=1 to switch hardware acceleration back on.
+		Windows: &windows.Options{Theme: windows.SystemDefault, WebviewGpuIsDisabled: core.Env("GPU") != "1"},
 		Bind:    []interface{}{app},
 	})
 	if err != nil {

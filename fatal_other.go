@@ -8,4 +8,4 @@ import (
 )
 
 // showFatal tells the user why the app cannot start.
-func showFatal(msg string) { fmt.Fprintln(os.Stderr, "FTP App:", msg) }
+func showFatal(msg string) { fmt.Fprintln(os.Stderr, "File Trans:", msg) }

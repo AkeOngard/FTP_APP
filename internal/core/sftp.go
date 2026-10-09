@@ -57,7 +57,7 @@ func (s *sftpService) Start() error {
 		return err
 	}
 	sshCfg := &ssh.ServerConfig{
-		ServerVersion: "SSH-2.0-FTPApp",
+		ServerVersion: "SSH-2.0-FileTrans",
 		MaxAuthTries:  3,
 		PasswordCallback: func(c ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
 			if s.guard.Blocked(c.RemoteAddr()) {
@@ -217,7 +217,7 @@ func loadOrCreateHostKey(path string) (ssh.Signer, error) {
 	if err != nil {
 		return nil, err
 	}
-	block, err := ssh.MarshalPrivateKey(priv, "ftpapp host key")
+	block, err := ssh.MarshalPrivateKey(priv, "filetrans host key")
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,7 @@ func generateSelfSigned(certPath, keyPath string) error {
 	host, _ := os.Hostname()
 	tmpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: "FTP_App"},
+		Subject:      pkix.Name{CommonName: "File Trans"},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

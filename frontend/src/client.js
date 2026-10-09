@@ -203,10 +203,10 @@ async function deleteSite() {
 }
 
 async function doConnect() {
+    if (ui.f.connect.disabled) return; // Enter pressed again while a connection is already being opened
     const p = readParams();
     if (!p.host) { toast('Enter a host'); ui.f.host.focus(); return; }
-    ui.f.connect.disabled = true;
-    ui.f.connect.lastChild.textContent = 'Connecting…';
+    showConnecting(p);
     try {
         let info = await App.Connect(p);
         if (info.unknownHost) {
@@ -226,9 +226,23 @@ async function doConnect() {
     } catch (e) {
         await onConnectError(e, p);
     } finally {
-        ui.f.connect.disabled = false;
-        ui.f.connect.lastChild.textContent = 'Connect';
+        showConnecting(null);
     }
+}
+
+const IDLE_HINT = 'Connect to a server to browse its files.';
+
+// showConnecting(p) marks the Connect button and the empty remote panel as busy; showConnecting(null) ends it.
+function showConnecting(p) {
+    const busy = !!p;
+    ui.f.connect.disabled = busy;
+    ui.f.connect.classList.toggle('busy', busy);
+    ui.f.connect.setAttribute('aria-busy', String(busy));
+    ui.f.connect.lastChild.textContent = busy ? 'Connecting…' : 'Connect';
+    ui.placeholderMsg.classList.toggle('busy', busy);
+    ui.placeholderText.textContent = busy
+        ? `Connecting to ${p.host}${p.port ? ':' + p.port : ''}…`
+        : IDLE_HINT;
 }
 
 function confirmHostKey(q) {
@@ -316,8 +330,11 @@ function buildPanels() {
     ui.btnDownload = button('Download', { kind: 'primary', iconName: 'download', title: 'Download the selected remote items', onClick: () => transferSelected('remote') });
     ui.mid = h('div', { class: 'mid' }, ui.btnUpload, ui.btnDownload);
 
-    ui.placeholder = h('section', { class: 'card panel' },
-        h('div', { class: 'empty', style: 'margin:auto' }, 'Connect to a server to browse its files.'));
+    // While a connection is being opened this shows a spinner, so a slow server does not look like a hang.
+    ui.placeholderText = h('span', {}, IDLE_HINT);
+    ui.placeholderMsg = h('div', { class: 'empty connect-wait', style: 'margin:auto', role: 'status' },
+        h('span', { class: 'spinner', 'aria-hidden': 'true' }), ui.placeholderText);
+    ui.placeholder = h('section', { class: 'card panel' }, ui.placeholderMsg);
 
     ui.tftpName = h('input', { type: 'text', placeholder: 'e.g. firmware/image.bin', spellcheck: 'false' });
     ui.tftpDownload = button('Download to the local folder', {
@@ -377,9 +394,18 @@ function makePanel(side) {
     }
 
     const tbody = h('tbody');
+    // Column headers sort the list: a click sorts by that column, a second click reverses it.
+    const heads = {};
+    const head = (key, label, cls) => {
+        const arrow = h('span', { class: 'sort-arrow', 'aria-hidden': 'true' });
+        const th = h('th', { class: cls, scope: 'col' },
+            h('button', { type: 'button', class: 'sort-btn', onclick: () => sortBy(side, key) }, label, arrow));
+        heads[key] = { th, arrow };
+        return th;
+    };
     const list = h('div', { class: 'list', id: `${side}-list`, tabindex: 0 },
         h('table', { class: 'files' },
-            h('thead', {}, h('tr', {}, h('th', {}, 'Name'), h('th', { class: 'size' }, 'Size'), h('th', { class: 'date' }, 'Modified'))),
+            h('thead', {}, h('tr', {}, head('name', 'Name', ''), head('size', 'Size', 'size'), head('date', 'Modified', 'date'))),
             tbody),
     );
     const empty = h('div', { class: 'empty', hidden: true });
@@ -401,7 +427,7 @@ function makePanel(side) {
         h('div', { class: 'panel-title' }, isRemote ? 'Remote' : 'This computer'),
         h('div', { class: 'panel-bar' }, bar),
         list, foot);
-    ui[side] = { tbody, pathInput, empty, foot, list, upBtn };
+    ui[side] = { tbody, pathInput, empty, foot, list, upBtn, heads };
     return { el, modifyButtons };
 }
 
@@ -425,6 +451,7 @@ async function navigate(side, target) {
         const names = new Set(m.entries.map((e) => e.name));
         m.sel = m.path === before.path ? new Set([...before.sel].filter((n) => names.has(n))) : new Set();
         m.anchor = -1;
+        sortEntries(side);
         renderList(side);
         updateActionState();
     } catch (e) {
@@ -444,9 +471,61 @@ function childPath(side, name) {
     return side === 'local' ? joinLocal(state.local.path, name) : joinRemote(state.remote.path, name);
 }
 
+// ---- sorting ----
+// Kept apart from the listing models, which are replaced on every connect, and remembered between runs.
+const SORT_KEY = 'ftpapp.sort';
+const sorts = loadSorts();
+
+function loadSorts() {
+    const def = { local: { key: 'name', desc: false }, remote: { key: 'name', desc: false } };
+    try {
+        const saved = JSON.parse(localStorage.getItem(SORT_KEY) || '{}');
+        for (const side of ['local', 'remote']) {
+            const s = saved[side];
+            if (s && ['name', 'size', 'date'].includes(s.key)) def[side] = { key: s.key, desc: !!s.desc };
+        }
+    } catch { /* unreadable or blocked storage: defaults */ }
+    return def;
+}
+
+const nameOrder = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+// Folders stay on top in either direction, as in every file manager; equal values fall back to the name.
+function sortEntries(side) {
+    const { key, desc } = sorts[side];
+    const time = (e) => { const t = Date.parse(e.modTime); return Number.isNaN(t) ? 0 : t; };
+    modelOf(side).entries.sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        let d = 0;
+        if (key === 'size' && !a.isDir) d = a.size - b.size;
+        else if (key === 'date') d = time(a) - time(b);
+        if (d === 0) d = nameOrder.compare(a.name, b.name) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+        return desc ? -d : d;
+    });
+}
+
+function sortBy(side, key) {
+    const s = sorts[side];
+    // A new column starts in its natural order: names A to Z, but biggest and newest first.
+    sorts[side] = s.key === key ? { key, desc: !s.desc } : { key, desc: key !== 'name' };
+    try { localStorage.setItem(SORT_KEY, JSON.stringify(sorts)); } catch { /* not remembered, still works */ }
+    sortEntries(side);
+    modelOf(side).anchor = -1; // row numbers changed; the selection itself is by name and stays
+    renderList(side);
+}
+
+function showSort(side) {
+    const { key, desc } = sorts[side];
+    for (const [k, { th, arrow }] of Object.entries(ui[side].heads)) {
+        const on = k === key;
+        th.setAttribute('aria-sort', on ? (desc ? 'descending' : 'ascending') : 'none');
+        arrow.textContent = on ? (desc ? '▼' : '▲') : '';
+    }
+}
 function renderList(side) {
     const m = modelOf(side);
     const p = ui[side];
+    showSort(side);
     p.pathInput.value = m.path;
     p.upBtn.disabled = side === 'local' ? !m.parent : (m.path === '/' || m.path === '');
     const tbody = clear(p.tbody);

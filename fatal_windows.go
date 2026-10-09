@@ -8,7 +8,7 @@ import "golang.org/x/sys/windows"
 // a message box the app would just not open.
 func showFatal(msg string) {
 	text, err1 := windows.UTF16PtrFromString(msg)
-	title, err2 := windows.UTF16PtrFromString("FTP App")
+	title, err2 := windows.UTF16PtrFromString("File Trans")
 	if err1 != nil || err2 != nil {
 		return
 	}

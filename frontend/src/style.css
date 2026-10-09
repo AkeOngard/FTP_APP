@@ -196,6 +196,16 @@ table.files th {
     position: sticky; top: 0; background: var(--surface); text-align: left; font-weight: 600; font-size: 12px;
     color: var(--muted); padding: 5px 8px; border-bottom: 1px solid var(--border); z-index: 1;
 }
+table.files th { padding: 0; }
+.sort-btn {
+    display: flex; align-items: center; gap: 5px; width: 100%; padding: 5px 8px; border: 0; background: none;
+    font: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+.sort-btn:hover { color: var(--text); background: var(--surface-2); }
+.sort-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { color: var(--text); }
+.sort-arrow { font-size: 9px; width: 9px; flex: none; }
+th.size .sort-btn { justify-content: flex-end; }
 table.files th.size, table.files td.size { width: 82px; text-align: right; }
 table.files th.date, table.files td.date { width: 128px; }
 table.files td { padding: 3px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -273,7 +283,27 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); }
     .xfer { grid-template-columns: 22px 1fr 1fr 190px 60px; }
 }
 
+/* ---------- busy indicator ---------- */
+.spinner {
+    display: none; width: 14px; height: 14px; flex: none; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: .35; } }
+/* a busy button swaps its icon for the spinner and stays fully visible although it is disabled */
+.btn.busy { opacity: 1; cursor: progress; }
+.btn.busy > svg { display: none; }
+.btn.busy::before {
+    content: ""; width: 13px; height: 13px; flex: none; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite;
+}
+.connect-wait { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.connect-wait.busy { color: var(--text); }
+.connect-wait.busy .spinner { display: inline-block; width: 18px; height: 18px; color: var(--accent); }
+
 @media (prefers-reduced-motion: reduce) {
+    /* no spinning: the ring pulses slowly instead, which still shows that something is going on */
+    .spinner, .btn.busy::before { animation: pulse 1.6s ease-in-out infinite; border-right-color: currentColor; }
     .bar > i { transition: none; }
     .bar.indeterminate > i { animation: none; margin-left: 0; width: 100% !important; opacity: .5; }
 }

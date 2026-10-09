@@ -1,4 +1,4 @@
-# FTP App
+# File Trans
 
 A small portable desktop app with **FTP / FTPS / SFTP / TFTP servers** and a **client** for all four.
 Go backend, plain HTML/JS frontend in a native window ([Wails](https://wails.io), uses the system WebView).
@@ -37,7 +37,7 @@ Defaults are conservative: ports 2121 / 2222 / 6969 (no admin rights needed), no
 TFTP (no login) is read-only and loopback-only until you change it.
 
 Memory (Windows): the UI runs in WebView2, whose helper processes are most of the footprint. The app turns off
-GPU compositing (about 45 MB less; set `FTPAPP_GPU=1` to turn it back on) and hands unused memory back to Windows
+GPU compositing (about 45 MB less; set `FILETRANS_GPU=1` to turn it back on) and hands unused memory back to Windows
 when the window has been hidden or untouched for a while, never during a transfer. Measured with Task Manager's
 "Memory" figure: about 80 MB right after opening, around 10 MB a few seconds later, about 20 MB while idle and
 about 30 MB in use; the Go process itself needs only about 8 MB. Pages that are needed again come back in a few
@@ -50,7 +50,7 @@ hold full paths are converted on the next start. A folder elsewhere stays a full
 new machine. The shared folder may not contain the app's own folder, because `config.json` holds password hashes
 and the SSH host key is a private key.
 
-Where the settings go: the folder of the executable, or `FTPAPP_HOME` if set, or the user config
+Where the settings go: the folder of the executable, or `FILETRANS_HOME` if set, or the user config
 folder when the executable folder is read-only.
 
 ## Building
@@ -70,10 +70,10 @@ Actions (Actions tab > build > Run workflow, or push a tag such as `v1.0.0` to a
 produces a zip/tar.gz per system and runs the tests on every one of them.
 On Ubuntu/Debian build with `wails build -tags webkit2_41` (needs `libwebkit2gtk-4.1-dev`).
 
-Linux: unpack, `chmod +x FTP_App`, run. Needs GTK 3 and `libwebkit2gtk-4.1` (Ubuntu 22.04+, Debian 12+, Fedora).
-macOS: the build is unsigned. After downloading, run `xattr -cr FTP_App.app` once (or right-click > Open) to get
+Linux: unpack, `chmod +x FileTrans`, run. Needs GTK 3 and `libwebkit2gtk-4.1` (Ubuntu 22.04+, Debian 12+, Fedora).
+macOS: the build is unsigned. After downloading, run `xattr -cr FileTrans.app` once (or right-click > Open) to get
 past Gatekeeper. Inside an `.app` the app does not write next to itself; settings go to
-`~/Library/Application Support/ftpapp`. For a portable setup copy a `config.json` from another install next to the
+`~/Library/Application Support/filetrans`. For a portable setup copy a `config.json` from another install next to the
 `.app`; when one is there, that folder is used instead (including its `share` folder).
 
 ## Layout

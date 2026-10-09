@@ -17,10 +17,10 @@ import (
 const configFileName = "config.json"
 
 // ConfigDir returns the folder holding config.json, host keys and the default share.
-// Portable by default: the folder of the executable. FTPAPP_HOME overrides it, and
+// Portable by default: the folder of the executable. FILETRANS_HOME overrides it, and
 // a user config directory is the fallback when the executable folder is read-only.
 func ConfigDir() (string, error) {
-	if d := os.Getenv("FTPAPP_HOME"); d != "" {
+	if d := Env("HOME"); d != "" {
 		return d, os.MkdirAll(d, 0o755)
 	}
 	if exe, err := os.Executable(); err == nil {
@@ -38,8 +38,23 @@ func ConfigDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(base, "ftpapp")
+	dir := filepath.Join(base, "filetrans")
+	// Settings written under the app's earlier name stay in use rather than being left behind.
+	if old := filepath.Join(base, "ftpapp"); !exists(dir) && exists(old) {
+		return old, nil
+	}
 	return dir, os.MkdirAll(dir, 0o755)
+}
+
+func exists(p string) bool { _, err := os.Stat(p); return err == nil }
+
+// Env reads the app's environment variable FILETRANS_<name>. The app used to be called FTP App, and
+// FTPAPP_<name> is still honoured so existing shortcuts and scripts keep working.
+func Env(name string) string {
+	if v := os.Getenv("FILETRANS_" + name); v != "" {
+		return v
+	}
+	return os.Getenv("FTPAPP_" + name)
 }
 
 // appBundleParent reports whether exe lives in a macOS bundle (Name.app/Contents/MacOS/exe) and, if so,

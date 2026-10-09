@@ -150,7 +150,7 @@ func (d *ftpDriver) GetSettings() (*ftpserver.Settings, error) {
 	st := &ftpserver.Settings{
 		ListenAddr:        listenAddr(cfg.ServiceConfig),
 		PublicHost:        cfg.PublicHost,
-		Banner:            "FTP_App FTP server ready",
+		Banner:            "File Trans FTP server ready",
 		IdleTimeout:       300,
 		ConnectionTimeout: 30,
 		DisableSite:       true,
@@ -175,7 +175,7 @@ func (d *ftpDriver) ClientConnected(cc ftpserver.ClientContext) (string, error) 
 	d.release[cc.ID()] = release
 	d.mu.Unlock()
 	d.svc.log.Infof(ServiceFTP, "%s connected", cc.RemoteAddr())
-	return "FTP_App FTP server ready", nil
+	return "File Trans FTP server ready", nil
 }
 
 func (d *ftpDriver) ClientDisconnected(cc ftpserver.ClientContext) {
