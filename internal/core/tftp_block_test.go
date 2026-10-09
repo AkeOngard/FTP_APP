@@ -8,7 +8,8 @@ import (
 )
 
 func TestBlockSizeClamping(t *testing.T) {
-	for in, want := range map[int]int{0: 1468, 100: 512, 512: 512, 1468: 1468, 8192: 8192, 65464: 65464, 1 << 20: 65464, -5: 512} {
+	top := tftpPlatformMaxBlock() // 65464, or 8192 where the system limits UDP datagrams (macOS, BSD)
+	for in, want := range map[int]int{0: 1468, 100: 512, 512: 512, 1468: 1468, 8192: 8192, 65464: top, 1 << 20: top, -5: 512} {
 		if got := (ConnectParams{BlockSize: in}).blockSize(); got != want {
 			t.Errorf("blockSize(%d) = %d, want %d", in, got, want)
 		}

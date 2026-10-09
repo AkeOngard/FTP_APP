@@ -61,8 +61,16 @@ jobs:
           npm ci
           npm run build
 
+      # On failure the failing tests are repeated as an annotation, which shows on the run's summary page.
       - name: Tests
-        run: go test -tags "${{ matrix.tags }}" ./...
+        shell: bash
+        run: |
+          set -o pipefail
+          go test -tags "${{ matrix.tags }}" ./... 2>&1 | tee test.log || {
+            msg=$(grep -E -B1 -A8 -e '--- FAIL' -e '^panic' test.log | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=go test (${{ matrix.name }})::$msg"
+            exit 1
+          }
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}

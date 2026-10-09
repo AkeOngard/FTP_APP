@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -60,14 +61,25 @@ const (
 	tftpMaxBlock     = 65464
 )
 
+// tftpPlatformMaxBlock is the largest block this system can send in one datagram. macOS and the BSDs
+// refuse UDP datagrams above 9216 bytes by default (net.inet.udp.maxdgram), so a bigger block would
+// make every transfer fail there; Windows and Linux take the protocol's maximum.
+func tftpPlatformMaxBlock() int {
+	switch runtime.GOOS {
+	case "darwin", "freebsd", "netbsd", "openbsd", "dragonfly":
+		return 8192
+	}
+	return tftpMaxBlock
+}
+
 func (p ConnectParams) blockSize() int {
-	switch {
+	switch max := tftpPlatformMaxBlock(); {
 	case p.BlockSize == 0:
 		return tftpDefaultBlock
 	case p.BlockSize < tftpMinBlock:
 		return tftpMinBlock
-	case p.BlockSize > tftpMaxBlock:
-		return tftpMaxBlock
+	case p.BlockSize > max:
+		return max
 	}
 	return p.BlockSize
 }

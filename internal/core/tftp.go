@@ -65,7 +65,7 @@ func (s *tftpService) Start() error {
 	// 30 MB/s however fast the network is. Honour the block size a client asks for (RFC 2348) up to a
 	// cap; clients that ask for nothing still get 512, so old devices are unaffected.
 	srv.SetBlockSizeNegotiation(false)
-	srv.SetBlockSize(maxTFTPBlockSize)
+	srv.SetBlockSize(min(maxTFTPBlockSize, tftpPlatformMaxBlock()))
 	srv.SetHook(tftpHook{s.log})
 
 	s.srv, s.conn, s.sandbox = srv, conn, sb
