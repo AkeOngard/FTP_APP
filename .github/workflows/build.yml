@@ -1,0 +1,107 @@
+name: build
+
+# Builds the app for Windows, Linux and macOS and runs the tests on each system.
+# Start it from the Actions tab (Run workflow), by pushing a tag like v1.0.0, or by opening a pull request.
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  WAILS_VERSION: v2.16.0
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-amd64
+            os: windows-latest
+            platform: windows/amd64
+            tags: ftpapp
+          # Built on 22.04 so the binary also runs on older distributions (needs libwebkit2gtk-4.1).
+          - name: linux-amd64
+            os: ubuntu-22.04
+            platform: linux/amd64
+            tags: webkit2_41
+          - name: linux-arm64
+            os: ubuntu-22.04-arm
+            platform: linux/arm64
+            tags: webkit2_41
+          - name: macos-universal
+            os: macos-latest
+            platform: darwin/universal
+            tags: ftpapp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Tests
+        run: go test -tags "${{ matrix.tags }}" ./...
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Build
+        run: wails build -platform ${{ matrix.platform }} -clean -s -tags "${{ matrix.tags }}"
+
+      # upload-artifact drops file permissions, so Linux and macOS are packed first
+      - name: Pack (Linux)
+        if: runner.os == 'Linux'
+        run: tar -C build/bin -czf FTP_App-${{ matrix.name }}.tar.gz FTP_App
+
+      - name: Pack (macOS)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --keepParent "build/bin/FTP_App.app" FTP_App-${{ matrix.name }}.zip
+
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path build/bin/FTP_App.exe -DestinationPath FTP_App-${{ matrix.name }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FTP_App-${{ matrix.name }}
+          path: FTP_App-${{ matrix.name }}.*
+          if-no-files-found: error
+
+  release:
+    # only for tags: attaches the four packages to a GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
