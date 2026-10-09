@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <!-- The page can reach every file through the app's bindings, so nothing but the app's own code may run
+         in it: no inline or remote scripts, no plugins, no frames. -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"/>
+    <title>FTP App</title>
+</head>
+<body>
+<div id="app">
+    <header class="topbar">
+        <nav class="tabs" role="tablist">
+            <button class="tab" role="tab" data-tab="servers" aria-selected="true">Servers</button>
+            <button class="tab" role="tab" data-tab="client" aria-selected="false">Client <span class="badge" id="client-badge" hidden></span></button>
+            <button class="tab" role="tab" data-tab="log" aria-selected="false">Log</button>
+        </nav>
+        <div class="topbar-info" id="info"></div>
+    </header>
+    <main>
+        <section class="view" id="view-servers"></section>
+        <section class="view" id="view-client" hidden></section>
+        <section class="view" id="view-log" hidden></section>
+    </main>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
+<script src="./src/main.js" type="module"></script>
+</body>
+</html>
