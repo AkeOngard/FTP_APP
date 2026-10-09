@@ -85,7 +85,15 @@ jobs:
 
       - name: Pack (macOS)
         if: runner.os == 'macOS'
-        run: ditto -c -k --keepParent "build/bin/FTP_App.app" FTP_App-${{ matrix.name }}.zip
+        run: |
+          # take whatever bundle the build produced, and say what is there if there is none
+          app=$(find build/bin -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$app" ]; then
+            echo "::error title=pack (macOS)::no .app in build/bin: $(ls -R build/bin | head -40 | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "packing $app"
+          ditto -c -k --keepParent "$app" FTP_App-${{ matrix.name }}.zip
 
       - name: Pack (Windows)
         if: runner.os == 'Windows'
